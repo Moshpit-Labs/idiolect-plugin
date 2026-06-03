@@ -1,0 +1,9 @@
+{
+  "name": "idiolect",
+  "version": "0.1.0",
+  "description": "Write in your own voice — Idiolect rewrites/drafts/scores in your voice.",
+  "author": "Idiolect",
+  "homepage": "https://idiolect.lol",
+  "mcp": ".mcp.json",
+  "skills": ["skills/in-your-voice/SKILL.md"]
+}

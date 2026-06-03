@@ -1,0 +1,7 @@
+{
+  "name": "idiolect",
+  "owner": { "name": "Idiolect", "url": "https://idiolect.lol" },
+  "plugins": [
+    { "name": "idiolect", "source": "./", "description": "Write in your own voice inside Claude Code — rewrite/draft/score via Idiolect." }
+  ]
+}

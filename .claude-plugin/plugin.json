@@ -1,0 +1,8 @@
+{
+  "name": "idiolect",
+  "version": "0.1.0",
+  "description": "Write in YOUR voice. Idiolect rewrites what the agent drafts on your behalf into your own writing voice — and scores how close it got, on a validated fidelity metric.",
+  "author": { "name": "Idiolect", "url": "https://idiolect.lol" },
+  "homepage": "https://idiolect.lol",
+  "license": "MIT"
+}
