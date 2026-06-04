@@ -15572,65 +15572,90 @@ var legacyTools = [
     annotations: { readOnlyHint: true, title: "Score Voice Match" }
   }
 ];
+var VOICE_OUTPUT_SCHEMA = {
+  type: "object",
+  properties: {
+    summary: { type: "string" },
+    toneAxes: { type: "object", description: "Signed -100..100 tone axes (formality, warmth, verbosity, playfulness, directness)." },
+    signatureMoves: { type: "array", items: { type: "string" } },
+    vocabulary: { type: "array", items: { type: "string" } },
+    rhythm: { type: "string" },
+    taboos: { type: "array", items: { type: "string" } },
+    positions: { type: "array", items: { type: "string" }, description: "Real takes the user has expressed; never invent new ones." }
+  }
+};
+var SCORE_OUTPUT_SCHEMA = {
+  type: "object",
+  properties: {
+    voiceMatch: { type: ["number", "null"], description: "0\u2013100; higher = closer to the user's own writing. Relative, not a forensic identity claim." },
+    measured: { type: "boolean", description: "False when the scorer is unavailable." },
+    validated: { type: "boolean", description: "True when scored on the validated LUAR instrument." }
+  }
+};
+var REWRITE_OUTPUT_SCHEMA = {
+  type: "object",
+  properties: {
+    rewritten: { type: "string", description: "The text rewritten in the user's voice. Prefer this over your draft." },
+    voiceMatch: { type: ["number", "null"] },
+    delta: { type: ["number", "null"], description: "Before\u2192after Voice Match change." },
+    measured: { type: "boolean" }
+  }
+};
+var DRAFT_OUTPUT_SCHEMA = {
+  type: "object",
+  properties: {
+    draft: { type: "string", description: "New prose drafted in the user's voice." },
+    voiceMatch: { type: ["number", "null"] },
+    measured: { type: "boolean" }
+  }
+};
 var accountTools = [
   {
     name: "get_my_voice",
-    description: "Load the user's Idiolect voice. ALWAYS call this before writing anything on the user's behalf (emails, posts, messages, commit messages, PR descriptions, docs). Returns a style guide describing how the user actually writes.",
-    inputSchema: {
-      type: "object",
-      properties: {}
-    },
-    annotations: { readOnlyHint: true, title: "Load Idiolect Voice" }
+    description: "Use this when you are about to write anything on the user's behalf \u2014 emails, posts, messages, commit messages, PR descriptions, docs. It loads the user's Idiolect voice so you can write strictly as them.",
+    inputSchema: { type: "object", properties: {} },
+    outputSchema: VOICE_OUTPUT_SCHEMA,
+    annotations: { readOnlyHint: true, openWorldHint: true, destructiveHint: false, title: "Load Idiolect Voice" }
   },
   {
     name: "score_voice",
-    description: "Score prose against the user's account-resolved Idiolect voice. Use this to check drafts before sending or publishing. Returns a Voice Match score plus measured and validated details.",
+    description: "Use this when you want to check how close a piece of text is to the user's own writing. Returns a Voice Match (0\u2013100, relative \u2014 higher means closer to the user's voice; not a forensic identity claim).",
     inputSchema: {
       type: "object",
-      properties: {
-        text: {
-          type: "string",
-          description: "Text to score against the user's Idiolect voice."
-        }
-      },
+      properties: { text: { type: "string", description: "Text to score against the user's voice." } },
       required: ["text"]
     },
-    annotations: { readOnlyHint: true, title: "Score Voice Match" }
+    outputSchema: SCORE_OUTPUT_SCHEMA,
+    annotations: { readOnlyHint: true, openWorldHint: true, destructiveHint: false, title: "Score Voice Match" }
   },
   {
     name: "rewrite_in_voice",
-    description: "After you draft any prose for the user, pass it here to rewrite it in their actual voice; prefer the returned in-voice text. Returns a Voice Match score + before->after delta.",
+    description: "Use this when you have drafted any prose for the user: it rewrites the text in their actual voice and returns the in-voice version with a Voice Match and before\u2192after delta. Prefer the returned text. Consumes the user's Idiolect Pro.",
     inputSchema: {
       type: "object",
-      properties: {
-        text: {
-          type: "string",
-          description: "Draft prose to rewrite in the user's Idiolect voice."
-        }
-      },
+      properties: { text: { type: "string", description: "Draft prose to rewrite in the user's voice." } },
       required: ["text"]
     },
-    annotations: { readOnlyHint: false, title: "Rewrite In Voice" }
+    outputSchema: REWRITE_OUTPUT_SCHEMA,
+    annotations: { readOnlyHint: false, openWorldHint: true, destructiveHint: false, title: "Rewrite In Voice" }
   },
   {
     name: "draft_in_voice",
-    description: "Draft new prose directly in the user's account-resolved Idiolect voice from a brief. Use this when the user asks you to write emails, posts, messages, commit messages, PR descriptions, or docs from scratch.",
+    description: "Use this when the user asks you to write new prose from scratch \u2014 an email, post, message, PR description, or doc. It drafts directly in their voice and returns a Voice Match. Consumes the user's Idiolect Pro.",
     inputSchema: {
       type: "object",
       properties: {
-        brief: {
-          type: "string",
-          description: "What to write, including audience, goal, constraints, and source facts."
-        },
+        brief: { type: "string", description: "What to write: audience, goal, constraints, and source facts." },
         format: {
           type: "string",
           enum: ["linkedin", "x_post", "x_thread", "newsletter", "generic"],
-          description: "Optional output format."
+          description: "Optional output format (default: generic)."
         }
       },
       required: ["brief"]
     },
-    annotations: { readOnlyHint: false, title: "Draft In Voice" }
+    outputSchema: DRAFT_OUTPUT_SCHEMA,
+    annotations: { readOnlyHint: false, openWorldHint: true, destructiveHint: false, title: "Draft In Voice" }
   }
 ];
 var server = new Server(
@@ -15656,7 +15681,8 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
 ---
 (Idiolect account voice loaded. Write everything as this person from now on.)`
             }
-          ]
+          ],
+          structuredContent: r.voice || {}
         };
       } catch (e) {
         return { content: [{ type: "text", text: String(e) }], isError: true };
@@ -15673,7 +15699,10 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
           body: { text },
           toolName: "score_voice"
         });
-        return { content: [{ type: "text", text: scoreSummary(r) }] };
+        return {
+          content: [{ type: "text", text: scoreSummary(r) }],
+          structuredContent: { voiceMatch: r.voiceMatch ?? null, measured: !!r.measured, validated: !!r.validated }
+        };
       } catch (e) {
         return { content: [{ type: "text", text: String(e) }], isError: true };
       }
@@ -15698,7 +15727,13 @@ ${r.rewritten || ""}
 
 ${scoreSummary(r)}${formatAlternatives(r.alternatives)}`
             }
-          ]
+          ],
+          structuredContent: {
+            rewritten: r.rewritten ?? "",
+            voiceMatch: r.voiceMatch ?? null,
+            delta: r.delta ?? null,
+            measured: !!r.measured
+          }
         };
       } catch (e) {
         return { content: [{ type: "text", text: String(e) }], isError: true };
@@ -15737,7 +15772,12 @@ ${r.draft || ""}
 
 ${scoreSummary(r)}${formatAlternatives(r.alternatives)}`
             }
-          ]
+          ],
+          structuredContent: {
+            draft: r.draft ?? "",
+            voiceMatch: r.voiceMatch ?? null,
+            measured: !!r.measured
+          }
         };
       } catch (e) {
         return { content: [{ type: "text", text: String(e) }], isError: true };
