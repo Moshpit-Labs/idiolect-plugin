@@ -1,0 +1,10 @@
+{
+  "name": "idiolect-mcp",
+  "version": "0.1.0",
+  "description": "Idiolect MCP server — write in your own voice. Rewrites/drafts/scores agent prose against your Idiolect voice.",
+  "type": "module",
+  "bin": { "idiolect-mcp": "server.mjs" },
+  "files": ["server.mjs"],
+  "homepage": "https://idiolect.lol",
+  "license": "MIT"
+}
