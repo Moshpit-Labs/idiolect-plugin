@@ -17,8 +17,16 @@ validated voice‑fidelity metric. Works in **Claude Code** and **Codex**.
    ```
    export IDIOLECT_API_KEY=idl_sk_your_key_here
    ```
-3. **Codex:** add this repo as a git‑backed marketplace / workspace plugin and set
-   the same `IDIOLECT_API_KEY` environment variable.
+3. **Codex:** Codex configures MCP servers in `~/.codex/config.toml`. Clone this
+   repo and register the bundled server (one command writes the
+   `[mcp_servers.idiolect]` entry, key included):
+   ```
+   git clone https://github.com/111mihir/idiolect-plugin ~/idiolect-plugin
+   codex mcp add idiolect \
+     --env IDIOLECT_API_KEY=idl_sk_your_key_here \
+     --env IDIOLECT_BASE=https://idiolect.lol \
+     -- node ~/idiolect-plugin/server.mjs
+   ```
 
 The plugin bundles a self‑contained MCP server (`server.mjs`) — no `npm install`
 needed.
