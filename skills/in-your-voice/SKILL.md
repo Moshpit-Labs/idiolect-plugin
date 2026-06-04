@@ -1,6 +1,6 @@
 ---
 name: in-your-voice
-description: Automatically rewrites prose drafted for the user (commits, PRs, docs, emails) into their own writing voice.
+description: Use when you are about to write, or have drafted, any prose for the user — emails, replies, messages, posts, commit messages, PR descriptions, docs, release notes. Loads the user's Idiolect voice and rewrites the draft into it, with a Voice Match score. Do not use for code.
 ---
 
 Whenever you draft prose for the user (including but not limited to commit messages, PR descriptions, documentation, release notes, emails, messages, or social media posts), you must ensure it matches the user's personal writing style.

@@ -15659,8 +15659,12 @@ var accountTools = [
   }
 ];
 var server = new Server(
-  { name: "idiolect", version: "0.1.0" },
-  { capabilities: { tools: {} } }
+  { name: "idiolect", version: "0.3.0" },
+  {
+    capabilities: { tools: {} },
+    // Hint folded into the client's context (MCP spec): use Idiolect proactively.
+    instructions: "Idiolect makes you write in THIS user's own voice. Whenever you are about to write any prose on the user's behalf \u2014 emails, replies, messages, posts, commit messages, PR descriptions, docs \u2014 FIRST call get_my_voice (once per session) and write in that voice. After drafting prose, call rewrite_in_voice and prefer the returned in-voice text (it includes a Voice Match). Do this proactively, without being asked. Do not use for code. Never invent the user's opinions \u2014 only match their style."
+  }
 );
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: ACCOUNT_MODE ? accountTools : legacyTools

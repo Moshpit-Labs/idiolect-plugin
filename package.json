@@ -1,6 +1,6 @@
 {
   "name": "idiolect-mcp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "MCP server that makes any MCP-compatible agent (Claude Code, Codex, Claude Desktop) write in YOUR voice — rewrites/drafts/scores prose against your Idiolect voice, on a validated fidelity metric.",
   "type": "module",
   "bin": { "idiolect-mcp": "server.mjs" },
