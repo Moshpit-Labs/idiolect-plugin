@@ -1,10 +1,13 @@
 {
   "name": "idiolect-mcp",
-  "version": "0.1.0",
-  "description": "Idiolect MCP server — write in your own voice. Rewrites/drafts/scores agent prose against your Idiolect voice.",
+  "version": "0.2.0",
+  "description": "MCP server that makes any MCP-compatible agent (Claude Code, Codex, Claude Desktop) write in YOUR voice — rewrites/drafts/scores prose against your Idiolect voice, on a validated fidelity metric.",
   "type": "module",
   "bin": { "idiolect-mcp": "server.mjs" },
   "files": ["server.mjs"],
   "homepage": "https://idiolect.lol",
+  "repository": { "type": "git", "url": "git+https://github.com/111mihir/idiolect-plugin.git" },
+  "keywords": ["mcp", "model-context-protocol", "claude", "codex", "ai", "writing", "voice", "idiolect", "ghostwriting"],
+  "author": "Idiolect (https://idiolect.lol)",
   "license": "MIT"
 }

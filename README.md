@@ -23,7 +23,7 @@ validated voice‑fidelity metric. Works in **Claude Code** and **Codex**.
    codex mcp add idiolect \
      --env IDIOLECT_API_KEY=idl_sk_your_key_here \
      --env IDIOLECT_BASE=https://idiolect.lol \
-     -- npx -y github:111mihir/idiolect-plugin
+     -- npx -y idiolect-mcp
    ```
 
 The plugin bundles a self‑contained MCP server (`server.mjs`) — no `npm install`
