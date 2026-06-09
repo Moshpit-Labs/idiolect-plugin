@@ -7,10 +7,10 @@ validated voice‑fidelity metric. Works in **Claude Code** and **Codex**.
 
 ## Setup
 
-1. **Get your API key** — sign in at <https://idiolect.lol/connect> and generate one.
+1. **Get your API key** — sign in at <https://idiolect.app/connect> and generate one.
 2. **Claude Code:**
    ```
-   /plugin marketplace add 111mihir/idiolect-plugin
+   /plugin marketplace add Moshpit-Labs/idiolect-plugin
    /plugin install idiolect@idiolect
    ```
    Then set your key in the environment Claude Code runs in:
@@ -22,7 +22,7 @@ validated voice‑fidelity metric. Works in **Claude Code** and **Codex**.
    ```
    codex mcp add idiolect \
      --env IDIOLECT_API_KEY=idl_sk_your_key_here \
-     --env IDIOLECT_BASE=https://idiolect.lol \
+     --env IDIOLECT_BASE=https://idiolect.app \
      -- npx -y idiolect-mcp
    ```
 
