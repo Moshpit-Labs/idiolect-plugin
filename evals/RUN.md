@@ -99,6 +99,24 @@ scoring.
   is no way to reset a `ready` account back to missing without deleting real
   profile data, so do not attempt that against `IDIOLECT_KEY_READY`.
 
+## This run writes to production. Plan for it.
+
+Every case drives the **live** remote connector, so a full run is not a dry run:
+each successful case writes a durable receipt row to
+`idl_activation_useful_outputs`, each setup case creates a real Voice Profile,
+and both test accounts emit `activation_*` events into `idl_events`. Two
+consequences:
+
+1. **Never run this during a live experiment read.** Those same tables are the
+   outcome store for E2, Task-First and (later) E3. 26 cases x 2 arms is 52
+   synthetic journeys landing in the cohort. Either run it while no experiment
+   is being read, or record both accounts' user ids and exclude them from every
+   readout denominator.
+2. **A pre-launch freeze forbids this run entirely.** Under a "no production DB
+   writes" rule there is no compliant way to execute the eval against the live
+   connector, no matter what tooling is available. This is the binding blocker,
+   not the tooling gaps below. Schedule the run for after the freeze lifts.
+
 ## Why this is blocked here
 
 This audit's environment has: no `IDIOLECT_KEY_MISSING` (no second, clean
@@ -107,6 +125,11 @@ returned `state: "ready"`), no way to force a connector outage for
 `failed-connector`, and (per this task's own hard rules) no authorization to
 install or publish the candidate Skill anywhere, session-scoped or otherwise,
 beyond what is documented above for someone who does have those two things.
+
+Also confirmed directly: `claude plugin eval` is **not** a subcommand of this
+CLI at v2.1.170 — `claude plugin eval --help` silently prints the parent
+`claude plugin` help rather than erroring. It appears to be early-access gated.
+Do not build the harness around it without checking availability first.
 That is 8 of 26 cases structurally unrunnable regardless of tooling, so no
 partial run was attempted — a partial run scored as if it were the full gate
 would misrepresent the gate's own missing-profile and failure-path criteria.
