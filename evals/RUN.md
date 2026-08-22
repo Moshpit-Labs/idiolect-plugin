@@ -1,8 +1,12 @@
 # Reproducing the Skill-off vs Skill-on offline gate
 
-Status as of 2026-08-22: **not run**. See "Why this is blocked here" below. This
-file is the exact command sequence for whoever has what this audit environment
-lacked.
+Status as of 2026-08-22: **not run**. See "Why this is blocked here" below. The
+harness (`evals/run.mjs` + `evals/score.mjs`) is now built and verified
+end-to-end via `--dry-run` against a stub — everything in this doc that does
+not require the live connector or a second test account has been checked
+against `claude --help` and actually exercised. This file documents that
+implementation and what a human still has to supply to point it at real
+accounts.
 
 ## What you need
 
@@ -45,59 +49,84 @@ Use `$ISO` as the `--plugin-dir` target for the Skill-on arm. This directory
 is temporary and session-local — nothing is installed, published, or added to
 any marketplace, and nothing under version control changes.
 
-## Per-case run
+## Per-case run — implemented by `evals/run.mjs`
 
-For each of the 26 cases in `skill-cases.json`, run twice (control, then
-skill), in a fresh conversation both times (`-p` with no `--continue`/`-c`),
-same model both times:
+This section originally specified a command sequence by hand. It has since
+been implemented as `evals/run.mjs` (`node evals/run.mjs --model <model>`),
+which is now the source of truth for the exact invocation; run it with
+`--dry-run` to see the pipeline exercised against a stub. What follows
+documents that implementation and four corrections found while building it
+against `claude --help` (v2.1.170):
 
-```bash
-# Control arm: connector only, no skill
-IDIOLECT_API_KEY="$KEY_FOR_THIS_CASE_PROFILE" \
-claude -p "$PROMPT_TEXT" \
-  --mcp-config .mcp.json \
-  --strict-mcp-config \
-  --model <same-model-both-arms> \
-  --output-format json > "results/<case-id>.control.json"
+1. **`.mcp.json` uses `${CLAUDE_PLUGIN_ROOT}`.** That placeholder is only
+   substituted when the config is loaded through `--plugin-dir`. Passed
+   directly via `--mcp-config` (the control arm, which never uses
+   `--plugin-dir`), it comes through literally and the connector fails to
+   spawn — silently turning the control arm into "no connector" rather than
+   "connector, no skill," which would invalidate every lift number. The
+   runner resolves it to an absolute path once and uses that same resolved
+   file for both arms via `--mcp-config`.
+2. **Isolation needs `--setting-sources ""` too, not just `--plugin-dir` +
+   `--strict-mcp-config`.** Those two flags isolate the *explicit* MCP config
+   and the *explicit* plugin dir, but an operator's own ambient
+   `~/.claude` config (user-level plugins, project `.mcp.json` via cwd) still
+   loads unless setting sources are also emptied — confirmed empirically:
+   without it, unrelated user-level plugins showed up in the session's
+   `plugins` list. The runner passes `--setting-sources ""` and runs from a
+   neutral temp `cwd`, never the repo root.
+3. **`--output-format json` returns only the final result, not the tool-call
+   trace** that `intent_correct` and `sequence_valid` need. Use
+   `--output-format stream-json --verbose` (confirmed: `stream-json` in
+   `--print` mode requires `--verbose` or the CLI refuses to start) and keep
+   the full JSONL event stream as the raw record.
+4. **`--continue` is the wrong resume mechanism for a scripted, multi-case
+   harness.** It resumes "the most recent conversation in the current
+   directory" — ambiguous once many cases run in the same process/cwd. Use
+   `--session-id <uuid>` on the first turn and `--resume <uuid>` on the
+   follow-up turn instead; each case gets an unambiguous, addressable
+   session regardless of run order.
 
-# Skill arm: connector + isolated candidate skill only
-IDIOLECT_API_KEY="$KEY_FOR_THIS_CASE_PROFILE" \
-claude -p "$PROMPT_TEXT" \
-  --mcp-config .mcp.json \
-  --strict-mcp-config \
-  --plugin-dir "$ISO" \
-  --model <same-model-both-arms> \
-  --output-format json > "results/<case-id>.skill.json"
-```
+One thing this section got right that's worth restating: `user_followup` has
+the same leakage problem `context_evidence` does — it's a *description*
+("User supplies two short writing samples...") in the source corpus, not
+literal reply text. Pasting the field verbatim as the human's turn would leak
+the expected setup path exactly like pasting `context_evidence` would. The
+runner never does this; see `evals/manual-inputs/README.md` for where the
+literal reply text has to come from.
 
 `$KEY_FOR_THIS_CASE_PROFILE` is `IDIOLECT_KEY_READY` for `profile: ready`
-cases, `IDIOLECT_KEY_MISSING` for `profile: missing` cases.
+cases, `IDIOLECT_KEY_MISSING` for `profile: missing` cases — `run.mjs` selects
+this automatically per case.
 
-For cases with `context_evidence` describing prior turns (not `missing`-profile
-setup state), construct those turns as actual earlier messages in the
-conversation — never paste the `context_evidence` sentence itself (see
-`evals/README.md`, leakage note).
-
-For cases with `user_followup`: only send it as a second `-p` turn (via
-`--continue`) if the transcript shows Claude actually stopped to ask; otherwise
-leave the case single-turn and mark `setup_completed`/`writing_completed`
-not-applicable per the README.
-
-Score each result file by hand against `skill-cases.json`'s `expect` block,
-using the key-mapping table in `evals/README.md`. Keep every raw
-`--output-format json` transcript beside its score — do not summarize before
-scoring.
+Score each raw result with `evals/score.mjs` against `skill-cases.json`'s
+`expect` block, using the key-mapping table in `evals/README.md`. Keep every
+raw transcript beside its score — do not summarize before scoring.
 
 ## Cases this repo cannot exercise even with the above
 
 - `failed-connector`: requires the Idiolect connector to actually be
-  unavailable. Simulate with a `--mcp-config` pointing at a deliberately
-  unreachable command/URL for that one case only; do not claim this tests the
-  real connector's failure mode, only the Skill's response to a generic MCP
-  failure.
+  unavailable. `run.mjs` handles this case by pointing `--mcp-config` at a
+  deliberately unreachable command for that one case only; do not claim this
+  tests the real connector's failure mode, only the Skill's response to a
+  generic MCP failure.
 - All 7 `profile: missing` cases require the clean second account above; there
   is no way to reset a `ready` account back to missing without deleting real
   profile data, so do not attempt that against `IDIOLECT_KEY_READY`.
+- **The 6 setup-possible missing-profile cases each need a *different*
+  connector-side evidence state on that one account**:
+  `no-profile-context-evidence` (two pre-approved messages already stored),
+  `no-profile-needs-evidence` (nothing stored, no consent),
+  `no-profile-rewrite-evidence` (draft available, consent not yet given),
+  `setup-shortfall` (some evidence, connector still wants more),
+  `setup-retry` (enough evidence, but the *first* setup attempt must return
+  `build_in_progress` — a fault-injection need, not just a data state), and
+  `setup-silent-mechanics` (evidence already approved and stored). A single
+  clean account cannot hold four different states at once, and the first case
+  that successfully completes setup stops the account from being `missing`
+  for the next one run against it. Whoever runs this for real needs either a
+  way to reset/re-seed `IDIOLECT_KEY_MISSING`'s evidence state between cases,
+  or one throwaway account per case — `setup-retry` in particular may not be
+  reachable at all without a way to force `build_in_progress` on demand.
 
 ## This run is not a dry run. Plan for it.
 

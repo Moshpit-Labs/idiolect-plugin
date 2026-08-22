@@ -1,6 +1,6 @@
 ---
 name: idiolect-writing
-description: Use when the user asks Claude to draft, rewrite, edit, condense, expand, or otherwise produce prose that should sound like them. Apply this automatically, without waiting for the user to name Idiolect or ask for it by tool — use the connected Idiolect tools to establish or load their personal writing model and complete the original writing task with minimum interruption. Do not use for code, for a genre that is impersonal or transactional by convention (system notices, status updates), or when the user explicitly wants a different voice or persona.
+description: Use when the user asks Claude to draft, rewrite, edit, condense, expand, or otherwise produce prose that should sound like them. Apply this automatically, without waiting for the user to name Idiolect or ask for it by tool — use the connected Idiolect tools to establish or load their personal writing model and complete the original writing task with minimum interruption. Do not use for pure code, for a genre that is impersonal or transactional by convention (system notices, status updates), or when the user explicitly wants a different voice or persona. When a request mixes code and prose (e.g. "implement X, then write the PR description in my voice"), apply this only to the prose part — the code is unaffected.
 ---
 
 Treat Idiolect as the user's persistent writing layer, not as a separate setup task.
@@ -16,5 +16,6 @@ When the user asks for personal writing, apply the following proactively — do 
 7. Prefer editing the user's existing draft when one exists rather than replacing it wholesale. For requests like "shorten this" or "clean this up", preserve the original information unless the user asks to remove it.
 8. Do not narrate tool choreography, profile mechanics, calibration terms, or scores unless they are necessary to resolve a problem or the user asks. The user asked for writing, not a systems tour.
 9. If Idiolect cannot complete the task, explain the smallest actionable blocker and preserve the original task so it can resume once the blocker is resolved.
+10. If a single request mixes code and prose (for example, "implement this function, then write the PR description in my voice"), scope Idiolect to the prose part only. Write and present the code exactly as the task requires, with no voice transformation, and run only the prose portion through Idiolect.
 
 The successful end state is the requested piece of writing in the user's style. Setup, profile creation, and tool calls are intermediate mechanics, never the goal.
