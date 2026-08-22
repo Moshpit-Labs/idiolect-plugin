@@ -99,23 +99,21 @@ scoring.
   is no way to reset a `ready` account back to missing without deleting real
   profile data, so do not attempt that against `IDIOLECT_KEY_READY`.
 
-## This run writes to production. Plan for it.
+## This run is not a dry run. Plan for it.
 
-Every case drives the **live** remote connector, so a full run is not a dry run:
-each successful case writes a durable receipt row to
-`idl_activation_useful_outputs`, each setup case creates a real Voice Profile,
-and both test accounts emit `activation_*` events into `idl_events`. Two
-consequences:
+Every case drives the **live** remote connector against real accounts. A full
+run creates real Voice Profiles and real writing output, and the backend records
+it the same way it records any other user activity. 26 cases x 2 arms is 52
+synthetic user journeys. Two consequences:
 
-1. **Never run this during a live experiment read.** Those same tables are the
-   outcome store for E2, Task-First and (later) E3. 26 cases x 2 arms is 52
-   synthetic journeys landing in the cohort. Either run it while no experiment
-   is being read, or record both accounts' user ids and exclude them from every
-   readout denominator.
-2. **A pre-launch freeze forbids this run entirely.** Under a "no production DB
-   writes" rule there is no compliant way to execute the eval against the live
-   connector, no matter what tooling is available. This is the binding blocker,
-   not the tooling gaps below. Schedule the run for after the freeze lifts.
+1. **Coordinate with whoever owns the product analytics before running.** These
+   journeys are indistinguishable from real usage after the fact unless someone
+   plans for them. Either run while nothing is being measured, or record both
+   test accounts' user ids up front and hand them over for exclusion.
+2. **A change freeze forbids this run entirely.** If the current rule is "no
+   writes to production", there is no compliant way to execute the eval against
+   the live connector, whatever tooling is available. That is the binding
+   blocker, not the tooling gaps below. Schedule the run for after the freeze.
 
 ## Why this is blocked here
 
